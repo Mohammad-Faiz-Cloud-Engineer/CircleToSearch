@@ -4,6 +4,9 @@
 
 # CircleToSearch
 
+[![Version](https://img.shields.io/badge/Version-1.0.1-informational.svg?logo=android&logoColor=white)](CHANGELOG.md)
+[![CI/CD](https://img.shields.io/github/actions/workflow/status/Mohammad-Faiz-Cloud-Engineer/CircleToSearch/build-apk.yml?branch=main&label=CI%2FCD&logo=githubactions&logoColor=white)](https://github.com/Mohammad-Faiz-Cloud-Engineer/CircleToSearch/actions)
+[![Code Size](https://img.shields.io/github/languages/code-size/Mohammad-Faiz-Cloud-Engineer/CircleToSearch?logo=github&logoColor=white)](https://github.com/Mohammad-Faiz-Cloud-Engineer/CircleToSearch)
 [![Platform](https://img.shields.io/badge/Platform-Android%2011%2B%20%28API%2030%2B%29-3DDC84.svg?logo=android&logoColor=white)](https://developer.android.com)
 [![Language](https://img.shields.io/badge/Language-Kotlin-7F52FF.svg?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![UI](https://img.shields.io/badge/UI-Jetpack%20Compose-4285F4.svg?logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
