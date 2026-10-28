@@ -7,7 +7,6 @@ import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
-import android.graphics.PointF
 import android.graphics.RectF
 import android.graphics.Shader
 import android.os.Build
@@ -26,7 +25,16 @@ class CircleSelectionView(
     private val onCancel: () -> Unit,
 ) : View(context) {
     private val path = Path()
-    private val points = ArrayList<PointF>()
+    private var lastX = 0f
+    private var lastY = 0f
+    private var minX = Float.MAX_VALUE
+    private var maxX = Float.MIN_VALUE
+    private var minY = Float.MAX_VALUE
+    private var maxY = Float.MIN_VALUE
+    private var pointCount = 0
+    private var hasPath = false
+    private var pillTextLeft = 0f
+
     private val imagePaint = Paint(Paint.FILTER_BITMAP_FLAG)
     private val dimPaint = Paint().apply { color = 0x66000000 }
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -103,10 +111,9 @@ class CircleSelectionView(
     }
 
     private fun updatePillBounds() {
-        val label = HINT_LABEL
-        val textWidth = hintPaint.measureText(label)
-        val left = (width - textWidth) / 2f
-        pillBounds.set(left - dp(16f), pillTop - dp(24f), left + textWidth + dp(16f), pillTop + dp(10f))
+        val textWidth = hintPaint.measureText(HINT_LABEL)
+        pillTextLeft = (width - textWidth) / 2f
+        pillBounds.set(pillTextLeft - dp(16f), pillTop - dp(24f), pillTextLeft + textWidth + dp(16f), pillTop + dp(10f))
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -114,14 +121,12 @@ class CircleSelectionView(
         super.onDraw(canvas)
         canvas.drawBitmap(screenshot, null, viewBounds, imagePaint)
         canvas.drawRect(viewBounds, dimPaint)
-        if (points.isNotEmpty()) {
+        if (hasPath) {
             canvas.drawPath(path, glowPaint)
             canvas.drawPath(path, strokePaint)
         }
         canvas.drawRoundRect(pillBounds, dp(18f), dp(18f), hintBackground)
-        val label = HINT_LABEL
-        val textWidth = hintPaint.measureText(label)
-        canvas.drawText(label, (width - textWidth) / 2f, pillTop, hintPaint)
+        canvas.drawText(HINT_LABEL, pillTextLeft, pillTop, hintPaint)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -132,10 +137,16 @@ class CircleSelectionView(
                     finishCancel()
                     return true
                 }
-                points.clear()
                 path.reset()
                 path.moveTo(event.x, event.y)
-                points.add(PointF(event.x, event.y))
+                lastX = event.x
+                lastY = event.y
+                minX = event.x
+                maxX = event.x
+                minY = event.y
+                maxY = event.y
+                pointCount = 1
+                hasPath = false
                 invalidate()
                 return true
             }
@@ -169,19 +180,22 @@ class CircleSelectionView(
     }
 
     private fun addPoint(x: Float, y: Float) {
-        val previous = points.lastOrNull() ?: return
-        val midX = (previous.x + x) / 2f
-        val midY = (previous.y + y) / 2f
-        path.quadTo(previous.x, previous.y, midX, midY)
-        points.add(PointF(x, y))
+        if (pointCount == 0) return
+        val midX = (lastX + x) / 2f
+        val midY = (lastY + y) / 2f
+        path.quadTo(lastX, lastY, midX, midY)
+        lastX = x
+        lastY = y
+        if (x < minX) minX = x
+        if (x > maxX) maxX = x
+        if (y < minY) minY = y
+        if (y > maxY) maxY = y
+        pointCount++
+        hasPath = true
     }
 
     private fun cropSelection(): Bitmap? {
-        if (points.size < 2 || width <= 0 || height <= 0) return null
-        val minX = points.minOf { it.x }
-        val maxX = points.maxOf { it.x }
-        val minY = points.minOf { it.y }
-        val maxY = points.maxOf { it.y }
+        if (pointCount < 2 || width <= 0 || height <= 0) return null
         if (maxX - minX < dp(8f) || maxY - minY < dp(8f)) return null
         val pad = dp(16f)
         val scaleX = screenshot.width.toFloat() / width

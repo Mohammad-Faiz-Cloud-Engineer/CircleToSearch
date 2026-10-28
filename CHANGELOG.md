@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.1] - 2026-10-28
 
+### Performance
+- Eliminated all heap object allocations during lasso drawing by replacing dynamic `PointF` lists with primitive float tracking for 120Hz smooth touch drawing.
+- Offloaded full-screen bitmap copying and pixel sampling from the main UI thread to `Dispatchers.Default` background worker thread, preventing frame drops.
+- Cached text width measurements and `touchSlop` lookups to eliminate redundant per-frame calculations in render and drag loops.
+
 ### Fixed
 - Prevented `Canvas: trying to use a recycled bitmap` race condition when touch completion races with queued frame drawing in `CircleSelectionView`.
 - Added `IOException` recovery to Preferences DataStore stream in `SettingsRepository` to prevent permanent disconnection of settings observation.

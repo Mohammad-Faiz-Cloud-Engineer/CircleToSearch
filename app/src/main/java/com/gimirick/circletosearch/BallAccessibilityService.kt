@@ -68,6 +68,7 @@ class BallAccessibilityService : AccessibilityService() {
     private var startX = 0
     private var startY = 0
     private var dragging = false
+    private var touchSlop = 0
     private val captureTimeout = Runnable {
         if (activeCapture && captureOverlay == null) {
             finishCapture()
@@ -97,6 +98,7 @@ class BallAccessibilityService : AccessibilityService() {
         super.onServiceConnected()
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         displayManager = getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+        touchSlop = ViewConfiguration.get(this).scaledTouchSlop
         repository = SettingsRepository(applicationContext)
         clearLensCache()
         registerReceiver(screenOffReceiver, IntentFilter(Intent.ACTION_SCREEN_OFF), Context.RECEIVER_NOT_EXPORTED)
@@ -212,7 +214,7 @@ class BallAccessibilityService : AccessibilityService() {
             MotionEvent.ACTION_MOVE -> {
                 val dx = event.rawX - dragX
                 val dy = event.rawY - dragY
-                val slop = ViewConfiguration.get(this).scaledTouchSlop
+                val slop = if (touchSlop > 0) touchSlop else ViewConfiguration.get(this).scaledTouchSlop
                 if (!dragging && (abs(dx) > slop || abs(dy) > slop)) dragging = true
                 if (dragging) {
                     params.x = startX + dx.toInt()
@@ -252,27 +254,37 @@ class BallAccessibilityService : AccessibilityService() {
                 takeScreenshot(Display.DEFAULT_DISPLAY, mainExecutor, object : TakeScreenshotCallback {
                     override fun onSuccess(result: ScreenshotResult) {
                         val buffer = result.hardwareBuffer
+                        val colorSpace = result.colorSpace
                         if (generation != captureGeneration) {
                             buffer.close()
                             return
                         }
-                        val bitmap = try {
-                            val wrapped = Bitmap.wrapHardwareBuffer(buffer, result.colorSpace)
-                            try {
-                                wrapped?.copy(Bitmap.Config.ARGB_8888, false)
+                        serviceScope.launch(Dispatchers.Default) {
+                            val bitmap = try {
+                                val wrapped = Bitmap.wrapHardwareBuffer(buffer, colorSpace)
+                                try {
+                                    wrapped?.copy(Bitmap.Config.ARGB_8888, false)
+                                } finally {
+                                    wrapped?.recycle()
+                                }
                             } finally {
-                                wrapped?.recycle()
+                                buffer.close()
                             }
-                        } finally {
-                            buffer.close()
+                            val blank = bitmap == null || isBlank(bitmap)
+                            withContext(Dispatchers.Main) {
+                                if (generation != captureGeneration) {
+                                    bitmap?.recycle()
+                                    return@withContext
+                                }
+                                if (blank) {
+                                    bitmap?.recycle()
+                                    finishCapture()
+                                    showToast("This screen blocks screenshots.")
+                                    return@withContext
+                                }
+                                showSelection(bitmap, generation)
+                            }
                         }
-                        if (bitmap == null || isBlank(bitmap)) {
-                            bitmap?.recycle()
-                            finishCapture()
-                            showToast("This screen blocks screenshots.")
-                            return
-                        }
-                        showSelection(bitmap, generation)
                     }
 
                     override fun onFailure(errorCode: Int) {
@@ -295,6 +307,7 @@ class BallAccessibilityService : AccessibilityService() {
             bitmap.recycle()
             return
         }
+        mainHandler.removeCallbacks(captureTimeout)
         captureBitmap = bitmap
         val selection = CircleSelectionView(
             this,
