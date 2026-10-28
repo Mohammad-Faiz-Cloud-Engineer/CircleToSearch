@@ -1,6 +1,10 @@
 name: CI
 
 on:
+  push:
+    branches: ["**"]
+    tags-ignore:
+      - 'v*'
   pull_request:
     branches: ["**"]
 
@@ -13,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout PR code
+      - name: Checkout code
         uses: actions/checkout@v7
 
       - name: Set up JDK 21
