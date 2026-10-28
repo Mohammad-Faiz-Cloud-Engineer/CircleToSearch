@@ -11,6 +11,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.Point
+import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
 import android.hardware.display.DisplayManager
 import android.os.Build
@@ -69,6 +70,8 @@ class BallAccessibilityService : AccessibilityService() {
     private var startY = 0
     private var dragging = false
     private var touchSlop = 0
+    private var isAutoHidden = false
+    private val autoHideRunnable = Runnable { autoHideBall() }
     private val captureTimeout = Runnable {
         if (activeCapture && captureOverlay == null) {
             finishCapture()
@@ -128,6 +131,7 @@ class BallAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         cancelCapture()
+        mainHandler.removeCallbacks(autoHideRunnable)
         hideBall()
         if (receiverRegistered) runCatching { unregisterReceiver(screenOffReceiver) }
         if (displayListenerRegistered) runCatching { displayManager.unregisterDisplayListener(displayListener) }
@@ -159,6 +163,15 @@ class BallAccessibilityService : AccessibilityService() {
         val root = FrameLayout(this).apply {
             addView(visual, FrameLayout.LayoutParams(visualSize, visualSize, Gravity.CENTER))
             setOnTouchListener(::onBallTouch)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                addOnLayoutChangeListener { v, l, t, r, b, _, _, _, _ ->
+                    val w = r - l
+                    val h = b - t
+                    if (w > 0 && h > 0) {
+                        v.systemGestureExclusionRects = listOf(Rect(0, 0, w, h))
+                    }
+                }
+            }
         }
         val point = screenSize()
         val params = WindowManager.LayoutParams(
@@ -178,9 +191,12 @@ class BallAccessibilityService : AccessibilityService() {
         windowManager.addView(root, params)
         ball = root
         ballParams = params
+        scheduleAutoHide()
     }
 
     private fun hideBall() {
+        mainHandler.removeCallbacks(autoHideRunnable)
+        isAutoHidden = false
         ball?.let { runCatching { windowManager.removeView(it) } }
         ball = null
         ballVisual = null
@@ -203,6 +219,7 @@ class BallAccessibilityService : AccessibilityService() {
         val params = ballParams ?: return false
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                unhideBall()
                 dragX = event.rawX
                 dragY = event.rawY
                 startX = params.x
@@ -224,17 +241,23 @@ class BallAccessibilityService : AccessibilityService() {
                 return true
             }
             MotionEvent.ACTION_UP -> {
-                if (dragging) {
+                val wasDragging = dragging
+                dragging = false
+                if (wasDragging) {
                     snapBall(params)
                     persistBallPosition(params)
                 } else onBallTap()
+                scheduleAutoHide()
                 return true
             }
             MotionEvent.ACTION_CANCEL -> {
-                if (dragging) {
+                val wasDragging = dragging
+                dragging = false
+                if (wasDragging) {
                     snapBall(params)
                     persistBallPosition(params)
                 }
+                scheduleAutoHide()
                 return true
             }
         }
@@ -243,6 +266,7 @@ class BallAccessibilityService : AccessibilityService() {
 
     private fun onBallTap() {
         if (activeCapture) return
+        mainHandler.removeCallbacks(autoHideRunnable)
         activeCapture = true
         ball?.visibility = View.INVISIBLE
         val generation = ++captureGeneration
@@ -346,7 +370,9 @@ class BallAccessibilityService : AccessibilityService() {
         activeCapture = false
         captureGeneration++
         if (settings.ballEnabled) {
+            ballVisual?.alpha = 1.0f
             ball?.visibility = View.VISIBLE
+            scheduleAutoHide()
         }
     }
 
@@ -368,24 +394,19 @@ class BallAccessibilityService : AccessibilityService() {
 
     private fun repositionBall() {
         val params = ballParams ?: return
+        unhideBall()
         val point = screenSize()
         params.x = (settings.ballXFraction * (point.x - params.width)).toInt()
         params.y = (settings.ballYFraction * (point.y - params.height)).toInt()
         clampBall(params)
         ball?.let { runCatching { windowManager.updateViewLayout(it, params) } }
+        scheduleAutoHide()
     }
 
     private fun snapBall(params: WindowManager.LayoutParams) {
         val point = screenSize()
         val maxX = (point.x - params.width).coerceAtLeast(0)
-        val maxY = (point.y - params.height).coerceAtLeast(0)
-        val distances = intArrayOf(params.x, maxX - params.x, params.y, maxY - params.y)
-        when (distances.indices.minByOrNull { distances[it] }) {
-            0 -> params.x = 0
-            1 -> params.x = maxX
-            2 -> params.y = 0
-            else -> params.y = maxY
-        }
+        params.x = if (params.x + params.width / 2 < point.x / 2) 0 else maxX
         clampBall(params)
         ball?.let { runCatching { windowManager.updateViewLayout(it, params) } }
     }
@@ -506,9 +527,56 @@ class BallAccessibilityService : AccessibilityService() {
 
     private fun showToast(message: String) = Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
 
+    private fun scheduleAutoHide() {
+        mainHandler.removeCallbacks(autoHideRunnable)
+        if (!activeCapture && ball != null) {
+            mainHandler.postDelayed(autoHideRunnable, AUTO_HIDE_DELAY_MS)
+        }
+    }
+
+    private fun currentDockEdge(params: WindowManager.LayoutParams): Int {
+        val point = screenSize()
+        val maxX = (point.x - params.width).coerceAtLeast(0)
+        return if (params.x >= maxX / 2) EDGE_RIGHT else EDGE_LEFT
+    }
+
+    private fun autoHideBall() {
+        if (isAutoHidden || activeCapture || dragging || ball?.visibility != View.VISIBLE) return
+        val params = ballParams ?: return
+        val root = ball ?: return
+        isAutoHidden = true
+
+        val point = screenSize()
+        val maxX = (point.x - params.width).coerceAtLeast(0)
+        val tuckX = params.width / 2
+        val edge = currentDockEdge(params)
+
+        params.x = if (edge == EDGE_RIGHT) maxX + tuckX else -tuckX
+        ballVisual?.animate()?.alpha(0.6f)?.setDuration(200)?.start()
+        runCatching { windowManager.updateViewLayout(root, params) }
+    }
+
+    private fun unhideBall() {
+        mainHandler.removeCallbacks(autoHideRunnable)
+        if (!isAutoHidden) return
+        isAutoHidden = false
+        val params = ballParams ?: return
+        val root = ball ?: return
+        val point = screenSize()
+        val maxX = (point.x - params.width).coerceAtLeast(0)
+
+        params.x = if (currentDockEdge(params) == EDGE_RIGHT) maxX else 0
+        clampBall(params)
+        ballVisual?.animate()?.alpha(1.0f)?.setDuration(150)?.start()
+        runCatching { windowManager.updateViewLayout(root, params) }
+    }
+
     private fun dp(value: Int): Int = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value.toFloat(), resources.displayMetrics).toInt()
 
     private companion object {
         const val GOOGLE_APP_PACKAGE = "com.google.android.googlequicksearchbox"
+        const val AUTO_HIDE_DELAY_MS = 2000L
+        const val EDGE_RIGHT = 1
+        const val EDGE_LEFT = 2
     }
 }

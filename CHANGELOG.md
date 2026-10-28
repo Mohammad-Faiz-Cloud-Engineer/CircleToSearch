@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.1] - 2026-10-28
 
+### Added
+- Edge docking auto-hide: ball automatically tucks half of itself into the screen edge and dims to 60% opacity after 2 seconds of inactivity, unhiding instantly upon touch.
+
 ### Performance
 - Eliminated all heap object allocations during lasso drawing by replacing dynamic `PointF` lists with primitive float tracking for 120Hz smooth touch drawing.
 - Offloaded full-screen bitmap copying and pixel sampling from the main UI thread to `Dispatchers.Default` background worker thread, preventing frame drops.
