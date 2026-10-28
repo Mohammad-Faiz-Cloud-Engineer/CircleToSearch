@@ -196,8 +196,7 @@ class BallAccessibilityService : AccessibilityService() {
         params.height = touchSize
         ballVisual?.layoutParams = FrameLayout.LayoutParams(size, size, Gravity.CENTER)
         ballVisual?.getChildAt(0)?.layoutParams = FrameLayout.LayoutParams((size * BALL_ICON_SCALE).toInt(), (size * BALL_ICON_SCALE).toInt(), Gravity.CENTER)
-        clampBall(params)
-        runCatching { windowManager.updateViewLayout(root, params) }
+        repositionBall()
     }
 
     private fun onBallTouch(view: View, event: MotionEvent): Boolean {
