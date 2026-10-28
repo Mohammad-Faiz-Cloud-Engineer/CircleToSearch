@@ -1,6 +1,24 @@
+<div align="center">
+
+<img src="circle-to-search.svg" alt="CircleToSearch Logo" width="120" height="120" />
+
 # CircleToSearch
 
-A native Kotlin app for Android 11 and newer. Tap the floating ball, draw around an item, and share its cropped image with Google Lens.
+[![Platform](https://img.shields.io/badge/Platform-Android%2011%2B%20%28API%2030%2B%29-3DDC84.svg?logo=android&logoColor=white)](https://developer.android.com)
+[![Language](https://img.shields.io/badge/Language-Kotlin-7F52FF.svg?logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![UI](https://img.shields.io/badge/UI-Jetpack%20Compose-4285F4.svg?logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
+[![License](https://img.shields.io/badge/License-BSD_2--Clause-blue.svg)](LICENSE)
+[![Privacy](https://img.shields.io/badge/Privacy-Offline%20%7C%20Zero%20Tracking-success.svg)](#privacy-and-image-handling)
+
+<p align="center">
+  A native Kotlin app for Android 11 and newer. Tap the floating ball, draw around an item, and share its cropped image with Google Lens.
+</p>
+
+</div>
+
+## Architecture & Components
+
+![Architecture & Components](Architecture%20%26%20Components.svg)
 
 ## Build and setup
 
