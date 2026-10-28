@@ -39,6 +39,7 @@ The settings screen stores ball size, visibility, and relative position in Prefe
 - The full screenshot stays in memory. Drawing selects a padded rectangular crop from the stroke bounds.
 - Only that crop is written to `cacheDir/lens/` for the FileProvider handoff. It is deleted after 60 seconds, when the screen turns off, and when the service starts or stops.
 - The FileProvider is not exported and exposes only `cacheDir/lens/`. No MediaStore or gallery access is used.
+- Android 12+ data extraction rules explicitly disallow cloud backups and device-to-device transfers.
 - A blank screenshot, including the usual result from a `FLAG_SECURE` screen, is discarded with a toast.
 
 ## Dependencies
