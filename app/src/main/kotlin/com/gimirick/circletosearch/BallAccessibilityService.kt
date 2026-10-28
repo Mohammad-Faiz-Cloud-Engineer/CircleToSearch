@@ -104,7 +104,11 @@ class BallAccessibilityService : AccessibilityService() {
         touchSlop = ViewConfiguration.get(this).scaledTouchSlop
         repository = SettingsRepository(applicationContext)
         clearLensCache()
-        registerReceiver(screenOffReceiver, IntentFilter(Intent.ACTION_SCREEN_OFF), Context.RECEIVER_NOT_EXPORTED)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(screenOffReceiver, IntentFilter(Intent.ACTION_SCREEN_OFF), Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(screenOffReceiver, IntentFilter(Intent.ACTION_SCREEN_OFF))
+        }
         receiverRegistered = true
         displayManager.registerDisplayListener(displayListener, Handler(Looper.getMainLooper()))
         displayListenerRegistered = true

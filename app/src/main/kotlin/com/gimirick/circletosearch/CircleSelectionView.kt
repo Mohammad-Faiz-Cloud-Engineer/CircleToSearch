@@ -129,11 +129,17 @@ class CircleSelectionView(
         canvas.drawText(HINT_LABEL, pillTextLeft, pillTop, hintPaint)
     }
 
+    override fun performClick(): Boolean {
+        super.performClick()
+        return true
+    }
+
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (finished) return true
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 if (pillBounds.contains(event.x, event.y)) {
+                    performClick()
                     finishCancel()
                     return true
                 }
@@ -156,6 +162,7 @@ class CircleSelectionView(
                 return true
             }
             MotionEvent.ACTION_UP -> {
+                performClick()
                 addPoint(event.x, event.y)
                 path.lineTo(event.x, event.y)
                 finished = true

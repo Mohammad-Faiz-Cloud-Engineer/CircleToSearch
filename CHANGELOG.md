@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Edge docking auto-hide: ball automatically tucks half of itself into the screen edge and dims to 60% opacity after 2 seconds of inactivity, unhiding instantly upon touch.
+- Android 12+ data extraction rules (`data_extraction_rules.xml`) enforcing zero cloud-backup and zero device-transfer data leakage.
+- Local release signing template (`signing.properties.example`).
+- Explanatory user feedback toast when Google app is present but unable to handle the share intent before launching the chooser fallback.
 
 ### Performance
 - Eliminated all heap object allocations during lasso drawing by replacing dynamic `PointF` lists with primitive float tracking for 120Hz smooth touch drawing.
@@ -16,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cached text width measurements and `touchSlop` lookups to eliminate redundant per-frame calculations in render and drag loops.
 
 ### Fixed
+- Fixed fatal `NoSuchMethodError` startup crash on Android 11 & 12 (API 30–32) by guarding 3-parameter `registerReceiver` with an API 33 (`TIRAMISU`) check.
+- Added accessibility `performClick()` support on `CircleSelectionView` to ensure full compatibility with screen readers and TalkBack.
+- Fixed `ci.yml` workflow trigger by adding the `push` event so automated tests and lint checks execute on every push as well as pull requests.
 - Fixed floating ball initial placement on first enable by defaulting X coordinate to screen edge (1.0f) instead of an inward offset (0.92f).
 - Prevented `Canvas: trying to use a recycled bitmap` race condition when touch completion races with queued frame drawing in `CircleSelectionView`.
 - Added `IOException` recovery to Preferences DataStore stream in `SettingsRepository` to prevent permanent disconnection of settings observation.
@@ -24,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deduplicated `"Circle an item  ·  Back to cancel"` hint string in `CircleSelectionView`.
 
 ### Changed
+- Migrated source code tree structure from `src/main/java` and `src/test/java` to `src/main/kotlin` and `src/test/kotlin`.
+- Enabled Gradle wrapper distribution URL validation (`validateDistributionUrl=true`).
 - Bumped Gradle wrapper to 9.8.2 and updated AndroidX core and Compose dependencies.
 - Configured CI/CD workflows for automated PR validation, debug artifact generation, and signed release APK publishing.
 

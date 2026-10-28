@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup>
+        <!-- No includes means no cloud backup -->
+    </cloud-backup>
+    <device-transfer>
+        <!-- No includes means no device-to-device transfer -->
+    </device-transfer>
+</data-extraction-rules>
