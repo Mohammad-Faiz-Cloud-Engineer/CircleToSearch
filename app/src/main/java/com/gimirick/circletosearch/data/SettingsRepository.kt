@@ -19,7 +19,7 @@ const val MAX_BALL_SIZE_DP = 96
 data class SettingsState(
     val ballEnabled: Boolean = true,
     val ballSizeDp: Int = 56,
-    val ballXFraction: Float = 0.92f,
+    val ballXFraction: Float = 1f,
     val ballYFraction: Float = 0.5f,
 )
 
@@ -30,7 +30,7 @@ class SettingsRepository(private val context: Context) {
         SettingsState(
             ballEnabled = prefs[Keys.ballEnabled] ?: true,
             ballSizeDp = (prefs[Keys.ballSize] ?: 56).coerceIn(MIN_BALL_SIZE_DP, MAX_BALL_SIZE_DP),
-            ballXFraction = (prefs[Keys.ballX] ?: 0.92f).coerceIn(0f, 1f),
+            ballXFraction = (prefs[Keys.ballX] ?: 1f).coerceIn(0f, 1f),
             ballYFraction = (prefs[Keys.ballY] ?: 0.5f).coerceIn(0f, 1f),
         )
     }

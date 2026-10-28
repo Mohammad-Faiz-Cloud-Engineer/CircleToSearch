@@ -14,7 +14,7 @@ class SettingsStateTest {
         val state = SettingsState()
         assertTrue("Ball should be enabled by default", state.ballEnabled)
         assertEquals(56, state.ballSizeDp)
-        assertEquals(0.92f, state.ballXFraction, 0.001f)
+        assertEquals(1f, state.ballXFraction, 0.001f)
         assertEquals(0.5f, state.ballYFraction, 0.001f)
     }
 
@@ -37,10 +37,10 @@ class SettingsStateTest {
     fun coordinates_clampBetweenZeroAndOne() {
         val lowX = (-0.5f).coerceIn(0f, 1f)
         val highX = 1.5f.coerceIn(0f, 1f)
-        val normalX = 0.92f.coerceIn(0f, 1f)
+        val normalX = 0.5f.coerceIn(0f, 1f)
 
         assertEquals(0f, lowX, 0.001f)
         assertEquals(1f, highX, 0.001f)
-        assertEquals(0.92f, normalX, 0.001f)
+        assertEquals(0.5f, normalX, 0.001f)
     }
 }

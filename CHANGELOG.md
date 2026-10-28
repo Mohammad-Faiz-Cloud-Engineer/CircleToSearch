@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cached text width measurements and `touchSlop` lookups to eliminate redundant per-frame calculations in render and drag loops.
 
 ### Fixed
+- Fixed floating ball initial placement on first enable by defaulting X coordinate to screen edge (1.0f) instead of an inward offset (0.92f).
 - Prevented `Canvas: trying to use a recycled bitmap` race condition when touch completion races with queued frame drawing in `CircleSelectionView`.
 - Added `IOException` recovery to Preferences DataStore stream in `SettingsRepository` to prevent permanent disconnection of settings observation.
 - Added 5-second capture watchdog timer in `BallAccessibilityService` to restore floating ball visibility if OS screenshot IPC hangs.
