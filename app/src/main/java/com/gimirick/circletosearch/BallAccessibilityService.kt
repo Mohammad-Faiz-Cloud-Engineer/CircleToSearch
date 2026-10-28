@@ -120,8 +120,8 @@ class BallAccessibilityService : AccessibilityService() {
     override fun onDestroy() {
         cancelCapture()
         hideBall()
-        if (receiverRegistered) unregisterReceiver(screenOffReceiver)
-        if (displayListenerRegistered) displayManager.unregisterDisplayListener(displayListener)
+        if (receiverRegistered) runCatching { unregisterReceiver(screenOffReceiver) }
+        if (displayListenerRegistered) runCatching { displayManager.unregisterDisplayListener(displayListener) }
         clearLensCache()
         serviceScope.cancel()
         super.onDestroy()
@@ -186,9 +186,9 @@ class BallAccessibilityService : AccessibilityService() {
         params.width = touchSize
         params.height = touchSize
         ballVisual?.layoutParams = FrameLayout.LayoutParams(size, size, Gravity.CENTER)
-        ballVisual?.getChildAt(0)?.layoutParams = FrameLayout.LayoutParams((size * 0.72f).toInt(), (size * 0.72f).toInt(), Gravity.CENTER)
+        ballVisual?.getChildAt(0)?.layoutParams = FrameLayout.LayoutParams((size * BALL_ICON_SCALE).toInt(), (size * BALL_ICON_SCALE).toInt(), Gravity.CENTER)
         clampBall(params)
-        windowManager.updateViewLayout(root, params)
+        runCatching { windowManager.updateViewLayout(root, params) }
     }
 
     private fun onBallTouch(view: View, event: MotionEvent): Boolean {
@@ -211,7 +211,7 @@ class BallAccessibilityService : AccessibilityService() {
                     params.x = startX + dx.toInt()
                     params.y = startY + dy.toInt()
                     clampBall(params)
-                    windowManager.updateViewLayout(view, params)
+                    runCatching { windowManager.updateViewLayout(view, params) }
                 }
                 return true
             }
@@ -236,44 +236,48 @@ class BallAccessibilityService : AccessibilityService() {
     private fun onBallTap() {
         if (activeCapture) return
         activeCapture = true
+        ball?.visibility = View.INVISIBLE
         val generation = ++captureGeneration
-        try {
-            takeScreenshot(Display.DEFAULT_DISPLAY, mainExecutor, object : TakeScreenshotCallback {
-                override fun onSuccess(result: ScreenshotResult) {
-                    val buffer = result.hardwareBuffer
-                    if (generation != captureGeneration) {
-                        buffer.close()
-                        return
-                    }
-                    val bitmap = try {
-                        val wrapped = Bitmap.wrapHardwareBuffer(buffer, result.colorSpace)
-                        try {
-                            wrapped?.copy(Bitmap.Config.ARGB_8888, false)
-                        } finally {
-                            wrapped?.recycle()
+        mainHandler.post {
+            if (generation != captureGeneration) return@post
+            try {
+                takeScreenshot(Display.DEFAULT_DISPLAY, mainExecutor, object : TakeScreenshotCallback {
+                    override fun onSuccess(result: ScreenshotResult) {
+                        val buffer = result.hardwareBuffer
+                        if (generation != captureGeneration) {
+                            buffer.close()
+                            return
                         }
-                    } finally {
-                        buffer.close()
+                        val bitmap = try {
+                            val wrapped = Bitmap.wrapHardwareBuffer(buffer, result.colorSpace)
+                            try {
+                                wrapped?.copy(Bitmap.Config.ARGB_8888, false)
+                            } finally {
+                                wrapped?.recycle()
+                            }
+                        } finally {
+                            buffer.close()
+                        }
+                        if (bitmap == null || isBlank(bitmap)) {
+                            bitmap?.recycle()
+                            finishCapture()
+                            showToast("This screen blocks screenshots.")
+                            return
+                        }
+                        showSelection(bitmap, generation)
                     }
-                    if (bitmap == null || isBlank(bitmap)) {
-                        bitmap?.recycle()
-                        activeCapture = false
-                        showToast("This screen blocks screenshots.")
-                        return
-                    }
-                    showSelection(bitmap, generation)
-                }
 
-                override fun onFailure(errorCode: Int) {
-                    if (generation != captureGeneration) return
-                    activeCapture = false
-                    showToast("Screen capture unavailable. This app may block screenshots.")
+                    override fun onFailure(errorCode: Int) {
+                        if (generation != captureGeneration) return
+                        finishCapture()
+                        showToast("Screen capture unavailable. This app may block screenshots.")
+                    }
+                })
+            } catch (_: RuntimeException) {
+                if (generation == captureGeneration) {
+                    finishCapture()
+                    showToast("Screen capture unavailable. Try again in a moment.")
                 }
-            })
-        } catch (_: RuntimeException) {
-            if (generation == captureGeneration) {
-                activeCapture = false
-                showToast("Screen capture unavailable. Try again in a moment.")
             }
         }
     }
@@ -290,8 +294,7 @@ class BallAccessibilityService : AccessibilityService() {
             onSelection = { crop ->
                 if (generation == captureGeneration) {
                     finishCapture()
-                    if (crop == null) showToast("Draw a larger circle to select an area.")
-                    else handoffCrop(crop)
+                    if (crop != null) handoffCrop(crop)
                 } else crop?.recycle()
             },
             onCancel = { if (generation == captureGeneration) cancelCapture() },
@@ -309,7 +312,7 @@ class BallAccessibilityService : AccessibilityService() {
         } catch (_: RuntimeException) {
             bitmap.recycle()
             captureBitmap = null
-            activeCapture = false
+            finishCapture()
             showToast("Could not open the selection overlay.")
         }
     }
@@ -321,6 +324,9 @@ class BallAccessibilityService : AccessibilityService() {
         captureBitmap = null
         activeCapture = false
         captureGeneration++
+        if (settings.ballEnabled) {
+            ball?.visibility = View.VISIBLE
+        }
     }
 
     private fun cancelCapture() {
@@ -345,7 +351,7 @@ class BallAccessibilityService : AccessibilityService() {
         params.x = (settings.ballXFraction * (point.x - params.width)).toInt()
         params.y = (settings.ballYFraction * (point.y - params.height)).toInt()
         clampBall(params)
-        ball?.let { windowManager.updateViewLayout(it, params) }
+        ball?.let { runCatching { windowManager.updateViewLayout(it, params) } }
     }
 
     private fun snapBall(params: WindowManager.LayoutParams) {
@@ -360,7 +366,7 @@ class BallAccessibilityService : AccessibilityService() {
             else -> params.y = maxY
         }
         clampBall(params)
-        ball?.let { windowManager.updateViewLayout(it, params) }
+        ball?.let { runCatching { windowManager.updateViewLayout(it, params) } }
     }
 
     private fun persistBallPosition(params: WindowManager.LayoutParams) {

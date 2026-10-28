@@ -7,13 +7,17 @@ import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.PointF
 import android.graphics.RectF
 import android.graphics.Shader
+import android.os.Build
+import android.util.TypedValue
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
-import android.util.TypedValue
-import android.graphics.PointF
+import android.view.WindowInsets
+import android.window.OnBackInvokedCallback
+import android.window.OnBackInvokedDispatcher
 
 class CircleSelectionView(
     context: Context,
@@ -44,7 +48,14 @@ class CircleSelectionView(
         textSize = dp(15f)
     }
     private val hintBackground = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xCC202124.toInt() }
+    private val viewBounds = RectF()
+    private val pillBounds = RectF()
+    private var pillTop = dp(56f)
     private var finished = false
+
+    private val backCallback = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        OnBackInvokedCallback { finishCancel() }
+    } else null
 
     init {
         isFocusable = true
@@ -52,33 +63,74 @@ class CircleSelectionView(
         requestFocus()
     }
 
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            backCallback?.let {
+                findOnBackInvokedDispatcher()?.registerOnBackInvokedCallback(
+                    OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+                    it
+                )
+            }
+        }
+    }
+
+    override fun onDetachedFromWindow() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            backCallback?.let {
+                findOnBackInvokedDispatcher()?.unregisterOnBackInvokedCallback(it)
+            }
+        }
+        super.onDetachedFromWindow()
+    }
+
+    override fun onApplyWindowInsets(insets: WindowInsets): WindowInsets {
+        val statusBarInset = insets.getInsets(WindowInsets.Type.statusBars()).top
+        val cutoutInset = insets.displayCutout?.safeInsetTop ?: 0
+        pillTop = maxOf(statusBarInset, cutoutInset).toFloat() + dp(20f)
+        updatePillBounds()
+        invalidate()
+        return super.onApplyWindowInsets(insets)
+    }
+
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         val colors = intArrayOf(0xFF4285F4.toInt(), 0xFFEA4335.toInt(), 0xFFFBBC05.toInt(), 0xFF34A853.toInt())
         val gradient = LinearGradient(0f, 0f, w.toFloat(), h.toFloat(), colors, null, Shader.TileMode.CLAMP)
         strokePaint.shader = gradient
         glowPaint.shader = gradient
+        viewBounds.set(0f, 0f, w.toFloat(), h.toFloat())
+        updatePillBounds()
+    }
+
+    private fun updatePillBounds() {
+        val label = "Circle an item  ·  Back to cancel"
+        val textWidth = hintPaint.measureText(label)
+        val left = (width - textWidth) / 2f
+        pillBounds.set(left - dp(16f), pillTop - dp(24f), left + textWidth + dp(16f), pillTop + dp(10f))
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        canvas.drawBitmap(screenshot, null, RectF(0f, 0f, width.toFloat(), height.toFloat()), imagePaint)
-        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), dimPaint)
+        canvas.drawBitmap(screenshot, null, viewBounds, imagePaint)
+        canvas.drawRect(viewBounds, dimPaint)
         if (points.isNotEmpty()) {
             canvas.drawPath(path, glowPaint)
             canvas.drawPath(path, strokePaint)
         }
+        canvas.drawRoundRect(pillBounds, dp(18f), dp(18f), hintBackground)
         val label = "Circle an item  ·  Back to cancel"
         val textWidth = hintPaint.measureText(label)
-        val left = (width - textWidth) / 2f
-        val top = dp(44f)
-        canvas.drawRoundRect(left - dp(16f), top - dp(24f), left + textWidth + dp(16f), top + dp(10f), dp(18f), dp(18f), hintBackground)
-        canvas.drawText(label, left, top, hintPaint)
+        canvas.drawText(label, (width - textWidth) / 2f, pillTop, hintPaint)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (finished) return true
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                if (pillBounds.contains(event.x, event.y)) {
+                    finishCancel()
+                    return true
+                }
                 points.clear()
                 path.reset()
                 path.moveTo(event.x, event.y)
@@ -138,8 +190,12 @@ class CircleSelectionView(
         val right = ((maxX + pad).coerceAtMost(width.toFloat()) * scaleX).toInt().coerceAtMost(screenshot.width)
         val bottom = ((maxY + pad).coerceAtMost(height.toFloat()) * scaleY).toInt().coerceAtMost(screenshot.height)
         if (right <= left || bottom <= top) return null
-        val crop = Bitmap.createBitmap(screenshot, left, top, right - left, bottom - top)
-        return if (crop === screenshot) crop.copy(Bitmap.Config.ARGB_8888, false) else crop
+        return try {
+            val crop = Bitmap.createBitmap(screenshot, left, top, right - left, bottom - top)
+            if (crop === screenshot) crop.copy(Bitmap.Config.ARGB_8888, false) else crop
+        } catch (_: Exception) {
+            null
+        }
     }
 
     private fun finishCancel() {
