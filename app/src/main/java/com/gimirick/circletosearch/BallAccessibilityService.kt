@@ -68,6 +68,12 @@ class BallAccessibilityService : AccessibilityService() {
     private var startX = 0
     private var startY = 0
     private var dragging = false
+    private val captureTimeout = Runnable {
+        if (activeCapture && captureOverlay == null) {
+            finishCapture()
+            showToast("Screen capture timed out.")
+        }
+    }
 
     private val screenOffReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -239,6 +245,7 @@ class BallAccessibilityService : AccessibilityService() {
         activeCapture = true
         ball?.visibility = View.INVISIBLE
         val generation = ++captureGeneration
+        mainHandler.postDelayed(captureTimeout, 5_000)
         mainHandler.post {
             if (generation != captureGeneration) return@post
             try {
@@ -319,6 +326,7 @@ class BallAccessibilityService : AccessibilityService() {
     }
 
     private fun finishCapture() {
+        mainHandler.removeCallbacks(captureTimeout)
         captureOverlay?.let { runCatching { windowManager.removeView(it) } }
         captureOverlay = null
         captureBitmap?.recycle()

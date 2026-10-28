@@ -6,7 +6,10 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.datastore.preferences.core.emptyPreferences
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
+import java.io.IOException
 
 private val Context.settingsStore by preferencesDataStore(name = "settings")
 
@@ -21,7 +24,9 @@ data class SettingsState(
 )
 
 class SettingsRepository(private val context: Context) {
-    val settings = context.settingsStore.data.map { prefs ->
+    val settings = context.settingsStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { prefs ->
         SettingsState(
             ballEnabled = prefs[Keys.ballEnabled] ?: true,
             ballSizeDp = (prefs[Keys.ballSize] ?: 56).coerceIn(MIN_BALL_SIZE_DP, MAX_BALL_SIZE_DP),

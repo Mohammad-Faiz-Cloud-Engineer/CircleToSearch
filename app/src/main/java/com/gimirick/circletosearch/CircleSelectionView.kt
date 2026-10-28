@@ -110,6 +110,7 @@ class CircleSelectionView(
     }
 
     override fun onDraw(canvas: Canvas) {
+        if (finished || screenshot.isRecycled) return
         super.onDraw(canvas)
         canvas.drawBitmap(screenshot, null, viewBounds, imagePaint)
         canvas.drawRect(viewBounds, dimPaint)
