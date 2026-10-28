@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">CircleToSearch</string>
+    <string name="accessibility_service_description">Shows a floating search ball and captures the screen only when you tap it to select an image.</string>
+</resources>
