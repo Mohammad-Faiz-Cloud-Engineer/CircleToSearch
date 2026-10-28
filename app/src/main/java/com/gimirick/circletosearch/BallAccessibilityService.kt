@@ -13,6 +13,7 @@ import android.graphics.PixelFormat
 import android.graphics.Point
 import android.graphics.drawable.GradientDrawable
 import android.hardware.display.DisplayManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.content.pm.PackageManager
@@ -441,14 +442,25 @@ class BallAccessibilityService : AccessibilityService() {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         val installed = try {
-            packageManager.getApplicationInfo(GOOGLE_APP_PACKAGE, 0)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                packageManager.getApplicationInfo(GOOGLE_APP_PACKAGE, PackageManager.ApplicationInfoFlags.of(0))
+            } else {
+                @Suppress("DEPRECATION")
+                packageManager.getApplicationInfo(GOOGLE_APP_PACKAGE, 0)
+            }
             true
         } catch (_: PackageManager.NameNotFoundException) {
             false
         }
         val target = Intent(send).setPackage(GOOGLE_APP_PACKAGE)
         try {
-            if (installed && target.resolveActivity(packageManager) != null) {
+            val resolvable = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                packageManager.resolveActivity(target, PackageManager.ResolveInfoFlags.of(0)) != null
+            } else {
+                @Suppress("DEPRECATION")
+                target.resolveActivity(packageManager) != null
+            }
+            if (installed && resolvable) {
                 target.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 startActivity(target)
             } else {

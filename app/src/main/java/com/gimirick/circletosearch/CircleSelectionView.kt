@@ -103,7 +103,7 @@ class CircleSelectionView(
     }
 
     private fun updatePillBounds() {
-        val label = "Circle an item  ·  Back to cancel"
+        val label = HINT_LABEL
         val textWidth = hintPaint.measureText(label)
         val left = (width - textWidth) / 2f
         pillBounds.set(left - dp(16f), pillTop - dp(24f), left + textWidth + dp(16f), pillTop + dp(10f))
@@ -118,7 +118,7 @@ class CircleSelectionView(
             canvas.drawPath(path, strokePaint)
         }
         canvas.drawRoundRect(pillBounds, dp(18f), dp(18f), hintBackground)
-        val label = "Circle an item  ·  Back to cancel"
+        val label = HINT_LABEL
         val textWidth = hintPaint.measureText(label)
         canvas.drawText(label, (width - textWidth) / 2f, pillTop, hintPaint)
     }
@@ -205,4 +205,8 @@ class CircleSelectionView(
     }
 
     private fun dp(value: Float): Float = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, resources.displayMetrics)
+
+    private companion object {
+        const val HINT_LABEL = "Circle an item  ·  Back to cancel"
+    }
 }
