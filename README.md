@@ -21,7 +21,7 @@
 
 ## Architecture & Components
 
-![Architecture & Components](Architecture%20%26%20Components.svg)
+![Architecture & Components](architecture.svg)
 
 ## Build and setup
 
