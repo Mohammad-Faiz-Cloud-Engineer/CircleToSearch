@@ -10,6 +10,9 @@ import kotlinx.coroutines.flow.map
 
 private val Context.settingsStore by preferencesDataStore(name = "settings")
 
+const val MIN_BALL_SIZE_DP = 32
+const val MAX_BALL_SIZE_DP = 96
+
 data class SettingsState(
     val ballEnabled: Boolean = true,
     val ballSizeDp: Int = 56,
@@ -21,7 +24,7 @@ class SettingsRepository(private val context: Context) {
     val settings = context.settingsStore.data.map { prefs ->
         SettingsState(
             ballEnabled = prefs[Keys.ballEnabled] ?: true,
-            ballSizeDp = (prefs[Keys.ballSize] ?: 56).coerceIn(32, 96),
+            ballSizeDp = (prefs[Keys.ballSize] ?: 56).coerceIn(MIN_BALL_SIZE_DP, MAX_BALL_SIZE_DP),
             ballXFraction = (prefs[Keys.ballX] ?: 0.92f).coerceIn(0f, 1f),
             ballYFraction = (prefs[Keys.ballY] ?: 0.5f).coerceIn(0f, 1f),
         )
@@ -29,7 +32,7 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setBallEnabled(enabled: Boolean) = context.settingsStore.edit { it[Keys.ballEnabled] = enabled }
 
-    suspend fun setBallSize(sizeDp: Int) = context.settingsStore.edit { it[Keys.ballSize] = sizeDp.coerceIn(32, 96) }
+    suspend fun setBallSize(sizeDp: Int) = context.settingsStore.edit { it[Keys.ballSize] = sizeDp.coerceIn(MIN_BALL_SIZE_DP, MAX_BALL_SIZE_DP) }
 
     suspend fun setBallPosition(xFraction: Float, yFraction: Float) = context.settingsStore.edit {
         it[Keys.ballX] = xFraction.coerceIn(0f, 1f)

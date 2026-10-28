@@ -57,6 +57,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
+import com.gimirick.circletosearch.data.MAX_BALL_SIZE_DP
+import com.gimirick.circletosearch.data.MIN_BALL_SIZE_DP
 import com.gimirick.circletosearch.ui.SettingsViewModel
 
 class MainActivity : ComponentActivity() {
@@ -65,11 +67,11 @@ class MainActivity : ComponentActivity() {
         setContent { SettingsScreen(this) }
     }
 
-    fun accessibilityEnabled(): Boolean {
+    fun accessibilityEnabled(): Boolean = runCatching {
         val enabled = Secure.getString(contentResolver, Secure.ENABLED_ACCESSIBILITY_SERVICES).orEmpty()
         val service = ComponentName(this, BallAccessibilityService::class.java)
-        return enabled.split(':').any { ComponentName.unflattenFromString(it) == service }
-    }
+        enabled.split(':').any { ComponentName.unflattenFromString(it) == service }
+    }.getOrDefault(false)
 
     fun openAccessibilitySettings() = startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
 }
@@ -182,11 +184,11 @@ private fun ControlsCard(enabled: Boolean, sizeDp: Int, model: SettingsViewModel
                 value = previewSize,
                 onValueChange = { previewSize = it },
                 onValueChangeFinished = { model.setBallSize(previewSize.toInt()) },
-                valueRange = 32f..96f
+                valueRange = MIN_BALL_SIZE_DP.toFloat()..MAX_BALL_SIZE_DP.toFloat()
             )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("32 dp", style = MaterialTheme.typography.labelMedium)
-                Text("96 dp", style = MaterialTheme.typography.labelMedium)
+                Text("${MIN_BALL_SIZE_DP} dp", style = MaterialTheme.typography.labelMedium)
+                Text("${MAX_BALL_SIZE_DP} dp", style = MaterialTheme.typography.labelMedium)
             }
         }
     }

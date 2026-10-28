@@ -104,7 +104,7 @@ class CircleSelectionView(
                 return true
             }
         }
-        return true
+        return super.onTouchEvent(event)
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {

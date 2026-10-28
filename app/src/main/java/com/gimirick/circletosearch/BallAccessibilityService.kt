@@ -376,9 +376,9 @@ class BallAccessibilityService : AccessibilityService() {
         params.y = params.y.coerceIn(0, (point.y - params.height).coerceAtLeast(0))
     }
 
-    private fun screenSize(): Point = Point().also {
-        @Suppress("DEPRECATION")
-        windowManager.defaultDisplay.getRealSize(it)
+    private fun screenSize(): Point {
+        val bounds = windowManager.maximumWindowMetrics.bounds
+        return Point(bounds.width(), bounds.height())
     }
 
     private fun clearLensCache() {
@@ -416,6 +416,7 @@ class BallAccessibilityService : AccessibilityService() {
                 crop.recycle()
             }
         }
+        // Fallback recycle in case coroutine was cancelled before execution started
         job.invokeOnCompletion { if (!crop.isRecycled) crop.recycle() }
     }
 
