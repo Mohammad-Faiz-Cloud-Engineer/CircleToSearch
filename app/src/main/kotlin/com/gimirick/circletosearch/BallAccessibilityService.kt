@@ -167,13 +167,11 @@ class BallAccessibilityService : AccessibilityService() {
         val root = FrameLayout(this).apply {
             addView(visual, FrameLayout.LayoutParams(visualSize, visualSize, Gravity.CENTER))
             setOnTouchListener(::onBallTouch)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                addOnLayoutChangeListener { v, l, t, r, b, _, _, _, _ ->
-                    val w = r - l
-                    val h = b - t
-                    if (w > 0 && h > 0) {
-                        v.systemGestureExclusionRects = listOf(Rect(0, 0, w, h))
-                    }
+            addOnLayoutChangeListener { v, l, t, r, b, _, _, _, _ ->
+                val w = r - l
+                val h = b - t
+                if (w > 0 && h > 0) {
+                    v.systemGestureExclusionRects = listOf(Rect(0, 0, w, h))
                 }
             }
         }

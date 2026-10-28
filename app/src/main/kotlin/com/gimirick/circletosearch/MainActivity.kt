@@ -42,6 +42,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -150,7 +151,7 @@ private fun WelcomeCard(enabled: Boolean, openSettings: () -> Unit) {
 
 @Composable
 private fun ControlsCard(enabled: Boolean, sizeDp: Int, model: SettingsViewModel) {
-    var previewSize by remember(sizeDp) { mutableStateOf(sizeDp.toFloat()) }
+    var previewSize by remember(sizeDp) { mutableFloatStateOf(sizeDp.toFloat()) }
     Card {
         Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text("Floating ball", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
