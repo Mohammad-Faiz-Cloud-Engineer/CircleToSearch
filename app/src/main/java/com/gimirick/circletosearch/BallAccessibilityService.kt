@@ -230,8 +230,7 @@ class BallAccessibilityService : AccessibilityService() {
             MotionEvent.ACTION_MOVE -> {
                 val dx = event.rawX - dragX
                 val dy = event.rawY - dragY
-                val slop = if (touchSlop > 0) touchSlop else ViewConfiguration.get(this).scaledTouchSlop
-                if (!dragging && (abs(dx) > slop || abs(dy) > slop)) dragging = true
+                if (!dragging && (abs(dx) > touchSlop || abs(dy) > touchSlop)) dragging = true
                 if (dragging) {
                     params.x = startX + dx.toInt()
                     params.y = startY + dy.toInt()
@@ -505,7 +504,7 @@ class BallAccessibilityService : AccessibilityService() {
                 target.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 startActivity(target)
             } else {
-                if (!installed) showToast("Google app is not installed. Choose another app to search this image.")
+                showToast(if (!installed) "Google app is not installed. Choose another app to search this image." else "Google app cannot handle this image. Choose another app.")
                 val chooser = Intent.createChooser(send, "Search this image").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 startActivity(chooser)
             }

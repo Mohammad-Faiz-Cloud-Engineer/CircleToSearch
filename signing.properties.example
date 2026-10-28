@@ -1,0 +1,7 @@
+# Example signing.properties for local release builds.
+# Copy this file to signing.properties and populate your values.
+# signing.properties is ignored by git.
+STORE_FILE=path/to/your/release.keystore
+STORE_PASSWORD=your_store_password
+KEY_ALIAS=your_key_alias
+KEY_PASSWORD=your_key_password
