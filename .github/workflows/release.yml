@@ -9,7 +9,7 @@ on:
       tag_name:
         description: 'Release tag name (e.g. v1.0.0)'
         required: false
-        default: 'v1.0.0'
+        default: 'v1.0.1'
 
 permissions:
   contents: write
@@ -96,7 +96,7 @@ jobs:
           elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
             TAG_NAME="${GITHUB_REF#refs/tags/}"
           else
-            TAG_NAME="v1.0.0"
+            TAG_NAME="v1.0.1"
           fi
           VERSION="${TAG_NAME#v}"
           echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT

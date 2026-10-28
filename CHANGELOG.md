@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-10-28
+
+### Fixed
+- Prevented `Canvas: trying to use a recycled bitmap` race condition when touch completion races with queued frame drawing in `CircleSelectionView`.
+- Added `IOException` recovery to Preferences DataStore stream in `SettingsRepository` to prevent permanent disconnection of settings observation.
+- Added 5-second capture watchdog timer in `BallAccessibilityService` to restore floating ball visibility if OS screenshot IPC hangs.
+- Resolved Android 13+ (API 33+) deprecations for package and activity resolution using `ApplicationInfoFlags` and `ResolveInfoFlags`.
+- Deduplicated `"Circle an item  ·  Back to cancel"` hint string in `CircleSelectionView`.
+
+### Changed
+- Bumped Gradle wrapper to 9.8.2 and updated AndroidX core and Compose dependencies.
+- Configured CI/CD workflows for automated PR validation, debug artifact generation, and signed release APK publishing.
+
 ## [1.0.0] - 2026-10-28
 
 ### Added
